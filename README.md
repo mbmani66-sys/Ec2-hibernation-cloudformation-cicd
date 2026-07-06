@@ -33,3 +33,7 @@ Common managed policies include:
 CloudFormationFullAccess
 AmazonEC2FullAccess
 IAMFullAccess
+
+## Project Screenshot
+
+![EC2 Hibernation](images/hibernation.jpg)
