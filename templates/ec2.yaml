@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EC2 configured for Hibernation
+
+Resources:
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and HTTP
+      VpcId:
+        Fn::ImportValue: HibernationVPC
+
+      SecurityGroupIngress:
+
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  HibernationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref HibernationRole
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+
+      ImageId: ami-05ffe3c48a9991133
+
+      InstanceType: t3.small
+
+      KeyName: titu
+
+      IamInstanceProfile: !Ref InstanceProfile
+
+      HibernationOptions:
+        Configured: true
+
+      BlockDeviceMappings:
+
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 30
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+
+      NetworkInterfaces:
+
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: true
+          GroupSet:
+            - !Ref InstanceSecurityGroup
+
+          SubnetId:
+            Fn::ImportValue: HibernationSubnet
+
+      Tags:
+
+        - Key: Name
+          Value: HibernationEC2
+
+Outputs:
+
+  InstanceId:
+    Value: !Ref EC2Instance

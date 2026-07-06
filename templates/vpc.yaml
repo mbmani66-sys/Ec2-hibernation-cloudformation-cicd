@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VPC for EC2 Hibernation Project
+
+Resources:
+
+  ProjectVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.10.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: Hibernation-VPC
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref ProjectVPC
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ProjectVPC
+      AvailabilityZone: us-east-1a
+      CidrBlock: 10.10.1.0/24
+      MapPublicIpOnLaunch: true
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ProjectVPC
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+Outputs:
+
+  VpcId:
+    Value: !Ref ProjectVPC
+    Export:
+      Name: HibernationVPC
+
+  SubnetId:
+    Value: !Ref PublicSubnet
+    Export:
+      Name: HibernationSubnet

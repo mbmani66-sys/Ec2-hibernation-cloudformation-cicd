@@ -1,0 +1,58 @@
+name: Deploy EC2 Hibernation Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy VPC
+        run: |
+          aws cloudformation deploy \
+            --template-file templates/vpc.yaml \
+            --stack-name hibernation-vpc \
+            --capabilities CAPABILITY_NAMED_IAM
+
+      - name: Deploy EC2
+        run: |
+          aws cloudformation deploy \
+            --template-file templates/ec2.yaml \
+            --stack-name hibernation-ec2 \
+            --capabilities CAPABILITY_NAMED_IAM
+
+      - name: Wait for EC2
+        run: |
+          sleep 60
+
+      - name: Get Instance ID
+        id: ec2
+        run: |
+          INSTANCE_ID=$(aws cloudformation describe-stacks \
+          --stack-name hibernation-ec2 \
+          --query "Stacks[0].Outputs[?OutputKey=='InstanceId'].OutputValue" \
+          --output text)
+
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+
+      - name: Hibernate EC2
+        run: |
+          aws ec2 stop-instances \
+            --instance-ids $INSTANCE_ID \
+            --hibernate
