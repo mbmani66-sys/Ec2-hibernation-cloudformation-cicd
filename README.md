@@ -36,4 +36,4 @@ IAMFullAccess
 
 ## Project Screenshot
 
-![Ec2 Hibernation](images/Ec2 hibernation.jpg)
+![EC2 Hibernation](images/ec2-hibernation.jpg)
